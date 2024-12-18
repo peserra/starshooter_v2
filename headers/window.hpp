@@ -52,6 +52,18 @@ private:
   float m_truckSpeed{};
   float m_panSpeed{};
 
+  struct Materials {
+    glm::vec4 Ka;
+    glm::vec4 Kd;
+  };
+  std::array<Materials, 4> m_targetsMaterials = {{
+      {{0.06f, 0.0f, 0.0f, 1.0f}, {0.8f, 0.1f, 0.1f, 0.5f}}, // vermelho
+      {{0.56f, 0.08f, 0.6f, 1.0f}, {0.11f, 0.2f, 0.2f, 0.5f}}, // roxo
+      {{0.11f, 0.05f, 0.0f, 1.0f}, {0.71f, 0.6f, 0.2f, 0.15f}}, // amarelo
+      {{0.2f, 0.002f, 0.2f, 1.0f}, {0.00f, 0.85f, 0.22f, 0.5f}}  // Quarto material
+  }};
+
+
   struct Star {
     glm::vec3 m_position{};
     glm::vec3 m_rotationAxis{};
@@ -119,10 +131,9 @@ private:
   glm::vec4 m_Ks{1.0f};
   float m_shininess{25.0f};
 
-  void randomizeStar(Star &star); //gera posicao da estrela aleatoriamente
+  void randomizeStar(Star &star); // gera posicao da estrela aleatoriamente
   void detectTargetPosition(); // funcao que detecta se mouse esta acima dos alvos
   void computePoints(); // funcao que computa os pontos, dependendo do alvo da rodada
-  void renderTargets(GLint modelMatrixLoc, GLint normalMatrixLoc, Fases fase); //funcao para separar logica de render dos targets
 };
 
 #endif

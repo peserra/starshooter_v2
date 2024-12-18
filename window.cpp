@@ -140,6 +140,13 @@ void Window::onUpdate() {
         a.m_hit = false;
         a.m_alreadyComputePoint = false;
       }
+
+      std::uniform_int_distribution<int> distr(0,3000);
+
+      int idxMat = distr(m_randomEngine) % (int)m_targetsMaterials.size();
+      m_Ka = m_targetsMaterials[idxMat].Ka;
+      m_Kd = m_targetsMaterials[idxMat].Kd;
+
       m_faseAtual++;
       m_timeAcc = 0.0f; // Reinicia o acumulador
     }
@@ -322,7 +329,9 @@ void Window::onPaint() {
   abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
   abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
   abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
-
+  
+  
+   
   Fases fase = m_fases[m_faseAtual]; 
   if (m_gameStatus == GameStatus::PLAYING) {
     for (auto i = 0; i < (int)m_alvos.size(); i++) {
