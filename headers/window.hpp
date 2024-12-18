@@ -134,6 +134,7 @@ private:
   void randomizeStar(Star &star); // gera posicao da estrela aleatoriamente
   void detectTargetPosition(); // funcao que detecta se mouse esta acima dos alvos
   void computePoints(); // funcao que computa os pontos, dependendo do alvo da rodada
+  void setupPhases(std::uniform_int_distribution<int> dist); // seta um novo conjunto de fases
 };
 
 #endif

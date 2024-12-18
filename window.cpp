@@ -65,7 +65,14 @@ void Window::onCreate() {
   if (m_font == nullptr) {
     throw abcg::RuntimeError{"Cannot load font file"};
   }
+  
   std::uniform_int_distribution<int> distribuicao(0, 1000);
+  setupPhases(distribuicao);
+  
+  m_camera.m_FOV = 170.0f;
+}
+
+void Window::setupPhases(std::uniform_int_distribution<int> distribuicao) {
   // para cada fase
   for (auto i = 0; i < (int)m_fases.size(); i++) {
     auto &fase = m_fases[i];
@@ -91,8 +98,6 @@ void Window::onCreate() {
     int selecCor = distribuicao(m_randomEngine) % 2;
     fase.m_targetColor = m_colors[selecCor];
   }
-
-  m_camera.m_FOV = 170.0f;
 }
 
 void Window::randomizeStar(Star &star) {
@@ -126,13 +131,19 @@ void Window::onUpdate() {
   }
 
   if (m_gameStatus == GameStatus::PLAYING) {
+    // jogo acabou
     if (m_faseAtual == (int)m_fases.size()) {
       m_faseAtual = 0;
       m_camera.m_FOV = 170.0f;
       m_timeAccFOV = 0;
       m_reduceFOV = false;
       m_gameStatus = GameStatus::ON_MENU;
+        std::uniform_int_distribution<int> distribuicao(0, 1000);
+
+      setupPhases(distribuicao);
     }
+    
+    // a cada 5s vai trocar de alvos na tela
     m_timeAcc += deltaTime;
     if (m_timeAcc >= 5.0f) {
       for (auto &a : m_alvos) {
@@ -152,7 +163,6 @@ void Window::onUpdate() {
     }
   }
 
-  // control camera movement
   m_camera.dolly(m_dollySpeed * deltaTime);
   m_camera.truck(m_truckSpeed * deltaTime);
   m_camera.pan(m_panSpeed * deltaTime);
@@ -178,6 +188,7 @@ void Window::onUpdate() {
   }
 }
 
+// cria hitboxes na posicao dos alvos
 void Window::detectTargetPosition() {
 
   for (auto &alvo : m_alvos) {
@@ -263,6 +274,7 @@ void Window::onPaint() {
 
   abcg::glViewport(0, 0, m_viewportSize.x, m_viewportSize.y);
 
+  // Utilizado para renderizar o fundo (o campo de estrelas)
   abcg::glUseProgram(m_program);
 
   // Get location of uniform variables
@@ -293,7 +305,7 @@ void Window::onPaint() {
     m_model.render();
   }
 
-  // RENDER DOS TARGETS -> utiliza outro shader
+  // Outro shader é utilizado para renderizar os alvos, para poder aplicar iluminação
 
   abcg::glUseProgram(m_programForms);
   // get location of forms uniforms variables
@@ -483,4 +495,5 @@ void Window::onDestroy() {
   m_modelSphere.destroy();
   m_modelSquare.destroy();
   abcg::glDeleteProgram(m_program);
+  abcg::glDeleteProgram(m_programForms);
 }
