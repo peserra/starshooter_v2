@@ -31,7 +31,6 @@ void Window::onCreate() {
                                  {.source = assetsPath + "depth.frag",
                                   .stage = abcg::ShaderStage::Fragment}});
 
-  
   m_programForms =
       abcg::createOpenGLProgram({{.source = assetsPath + "blinn-phong.vert",
                                   .stage = abcg::ShaderStage::Vertex},
@@ -48,7 +47,6 @@ void Window::onCreate() {
   m_modelSquare.loadObj(assetsPath + "objmodels/chamferbox.obj");
   m_modelSquare.setupVAO(m_programForms);
   m_trianglesToDraw = m_modelSquare.getNumTriangles();
-
 
   m_viewMatrix = m_camera.getViewMatrix();
 
@@ -72,9 +70,9 @@ void Window::onCreate() {
   for (auto i = 0; i < (int)m_fases.size(); i++) {
     auto &fase = m_fases[i];
     fase.m_points = 0; // pontos iniciais adquiridos naquela fase
-    
+
     // preenche quais formas terao naquela fase
-    for (auto j = 0; j < (int)fase.m_targetForms.size(); j++){
+    for (auto j = 0; j < (int)fase.m_targetForms.size(); j++) {
       int numero = distribuicao(m_randomEngine) % 2;
       if (numero == 0) {
         fase.m_targetForms[j] = Forms::SQUARE;
@@ -82,10 +80,11 @@ void Window::onCreate() {
         fase.m_targetForms[j] = Forms::SPHERE;
       }
     }
-    
+
     // alvo é uma forma aleatoria dos alvos criados na fase
     // garante que sempre vai ter um alvo valido
-    int selecAlvo = distribuicao(m_randomEngine) % (int)fase.m_targetForms.size();
+    int selecAlvo =
+        distribuicao(m_randomEngine) % (int)fase.m_targetForms.size();
     fase.m_targetForm = fase.m_targetForms[selecAlvo];
 
     // seleciona cor aleatoria entre verde e vermelho
@@ -111,9 +110,9 @@ void Window::randomizeStar(Star &star) {
 void Window::onUpdate() {
   // Increase angle by 90 degrees per second
   auto const deltaTime{gsl::narrow_cast<float>(getDeltaTime())};
-  
+
   if (m_reduceFOV) {
-    m_timeAccFOV += deltaTime; // Acumula tempo
+    m_timeAccFOV += deltaTime;   // Acumula tempo
     float const duration = 0.5f; // Duração da transição em segundos
     if (m_timeAccFOV <= duration) {
       // Interpola o FOV de 170 para 70
@@ -126,9 +125,8 @@ void Window::onUpdate() {
     }
   }
 
-
   if (m_gameStatus == GameStatus::PLAYING) {
-    if (m_faseAtual == (int)m_fases.size()){
+    if (m_faseAtual == (int)m_fases.size()) {
       m_faseAtual = 0;
       m_camera.m_FOV = 170.0f;
       m_timeAccFOV = 0;
@@ -136,11 +134,10 @@ void Window::onUpdate() {
       m_gameStatus = GameStatus::ON_MENU;
     }
     m_timeAcc += deltaTime;
-    if (m_timeAcc >= 6.0f) {
-      fmt::print("fase {}\n", m_faseAtual);  
-      for (auto &a: m_alvos){
+    if (m_timeAcc >= 5.0f) {
+      for (auto &a : m_alvos) {
         // reseta os alvos quando muda de fase
-        a.m_hit = false; 
+        a.m_hit = false;
         a.m_alreadyComputePoint = false;
       }
       m_faseAtual++;
@@ -168,7 +165,7 @@ void Window::onUpdate() {
       star.m_position.z = -100.0f; // Back to -00
     }
   }
-  if (m_gameStatus == GameStatus::PLAYING){
+  if (m_gameStatus == GameStatus::PLAYING) {
     detectTargetPosition();
     computePoints();
   }
@@ -223,7 +220,7 @@ void Window::detectTargetPosition() {
   }
 }
 
-void Window::computePoints(){
+void Window::computePoints() {
   auto faseAtual = m_fases[m_faseAtual];
   auto corAtual = faseAtual.m_targetColor;
   auto formaAtual = faseAtual.m_targetForm;
@@ -232,12 +229,12 @@ void Window::computePoints(){
     auto &a = m_alvos[i];
     if (!a.m_hit)
       continue;
-    
-    if(a.m_alreadyComputePoint)
+
+    if (a.m_alreadyComputePoint)
       continue;
 
     // cor atual eh verde ?
-    if (corAtual == m_colors[0]){
+    if (corAtual == m_colors[0]) {
       if (formaAtual == faseAtual.m_targetForms[i]) {
         m_totalPoints += 100;
       } else {
@@ -289,138 +286,94 @@ void Window::onPaint() {
     m_model.render();
   }
 
- // RENDER DOS TARGETS -> utiliza outro shader
+  // RENDER DOS TARGETS -> utiliza outro shader
 
   abcg::glUseProgram(m_programForms);
   // get location of forms uniforms variables
-  auto const viewFormsMatrixLoc{abcg::glGetUniformLocation(m_programForms, "viewMatrix")};
-  auto const projFormsMatrixLoc{abcg::glGetUniformLocation(m_programForms, "projMatrix")};
+  auto const viewFormsMatrixLoc{
+      abcg::glGetUniformLocation(m_programForms, "viewMatrix")};
+  auto const projFormsMatrixLoc{
+      abcg::glGetUniformLocation(m_programForms, "projMatrix")};
   auto const lightDirLoc{
       abcg::glGetUniformLocation(m_programForms, "lightDirWorldSpace")};
-  auto const shininessLoc{abcg::glGetUniformLocation(m_programForms, "shininess")};
 
   auto const modelFormsMatrixLoc{
       abcg::glGetUniformLocation(m_programForms, "modelMatrix")};
   auto const normalMatrixLoc{
-    abcg::glGetUniformLocation(m_programForms, "normalMatrix")};
+      abcg::glGetUniformLocation(m_programForms, "normalMatrix")};
+  auto const shininessLoc{
+      abcg::glGetUniformLocation(m_programForms, "shininess")};
+
+  // Iluminação e Materiais
+  auto const IaLoc{abcg::glGetUniformLocation(m_programForms, "Ia")};
+  auto const IdLoc{abcg::glGetUniformLocation(m_programForms, "Id")};
+  auto const IsLoc{abcg::glGetUniformLocation(m_programForms, "Is")};
+
+  auto const KaLoc{abcg::glGetUniformLocation(m_programForms, "Ka")};
+  auto const KdLoc{abcg::glGetUniformLocation(m_programForms, "Kd")};
+  auto const KsLoc{abcg::glGetUniformLocation(m_programForms, "Ks")};
 
   abcg::glUniformMatrix4fv(viewFormsMatrixLoc, 1, GL_FALSE,
                            &m_camera.getViewMatrix()[0][0]);
   abcg::glUniformMatrix4fv(projFormsMatrixLoc, 1, GL_FALSE,
                            &m_camera.getProjMatrix()[0][0]);
 
-  //Iluminação e Materiais
-  auto const IaLoc{abcg::glGetUniformLocation(m_programForms, "Ia")};
-  auto const IdLoc{abcg::glGetUniformLocation(m_programForms, "Id")};
-  auto const IsLoc{abcg::glGetUniformLocation(m_programForms, "Is")};
-  auto const KaLoc{abcg::glGetUniformLocation(m_programForms, "Ka")};
-  auto const KdLoc{abcg::glGetUniformLocation(m_programForms, "Kd")};
-  auto const KsLoc{abcg::glGetUniformLocation(m_programForms, "Ks")};
-  auto const lightDirRotated{m_lightDir};
-  abcg::glUniform4fv(lightDirLoc, 1, &lightDirRotated.x);
+  abcg::glUniform4fv(lightDirLoc, 1, &m_lightDir.x);
   abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
   abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
   abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
-  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
-  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
-  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
-  abcg::glUniform1f(shininessLoc, m_shininess);
 
-
+  Fases fase = m_fases[m_faseAtual]; 
   if (m_gameStatus == GameStatus::PLAYING) {
-    renderTargets(modelFormsMatrixLoc, normalMatrixLoc , m_fases[m_faseAtual]);
-  }
+    for (auto i = 0; i < (int)m_alvos.size(); i++) {
+            auto &alvo = m_alvos[i];
+      glm::mat4 model{1.0f};
+      glm::vec3 targetPosition = m_targetScreenPos[i];
 
+      alvo.m_positionTarget = targetPosition;
+      model = glm::translate(model, alvo.m_positionTarget);
+      model = glm::rotate(model, m_angle, alvo.m_rotationAxis);
+
+      if (fase.m_targetForms[i] == Forms::SQUARE) {
+        alvo.m_scaleTarget = {0.2f, 0.2f, 0.2f};
+      }
+
+      model = glm::scale(model, alvo.m_scaleTarget);
+
+      abcg::glUniformMatrix4fv(modelFormsMatrixLoc, 1, GL_FALSE, &model[0][0]);
+
+      abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+      abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+      abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+      abcg::glUniform1f(shininessLoc, m_shininess);
+
+      auto const modelViewMatrix{glm::mat3(m_camera.getViewMatrix() * model)};
+      auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
+      abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                               &normalMatrix[0][0]);
+      if (!alvo.m_hit) {
+        if (fase.m_targetForms[i] == Forms::SQUARE) {
+          m_modelSquare.render(m_trianglesToDraw);
+        } else {
+          m_modelSphere.render(m_trianglesToDraw);
+        }
+      }
+    }
+  }
 
   abcg::glUseProgram(0);
 }
 
-void Window::renderTargets(GLint modelMatrixLoc, GLint normalMatrixLoc, Fases fase){
-  for (auto i = 0; i < (int)m_alvos.size(); i++) {
-    auto &alvo = m_alvos[i];
-    glm::mat4 model{1.0f};
-    glm::vec3 targetPosition = m_targetScreenPos[i];
-
-    alvo.m_positionTarget = targetPosition;
-    model = glm::translate(model, alvo.m_positionTarget);
-    model = glm::rotate(model, m_angle, alvo.m_rotationAxis);
-
-    if (fase.m_targetForms[i] == Forms::SQUARE) {
-      alvo.m_scaleTarget = {0.2f, 0.2f, 0.2f};
-    }
-
-    model = glm::scale(model, alvo.m_scaleTarget);
-
-    if (i == 0) {
-
-      abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-      auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
-      auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
-      abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, &normalMatrix[0][0]);
-      if (!alvo.m_hit) {
-        if (fase.m_targetForms[i] == Forms::SQUARE) {
-          m_modelSquare.render(m_trianglesToDraw);
-        } else {
-          m_modelSphere.render(m_trianglesToDraw);
-        }
-      }
-
-    } else if (i == 1) {
-
-      abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-      auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
-      auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
-      abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, &normalMatrix[0][0]);
-      
-      if (!alvo.m_hit) {
-        if (fase.m_targetForms[i] == Forms::SQUARE) {
-          m_modelSquare.render(m_trianglesToDraw);
-        } else {
-          m_modelSphere.render(m_trianglesToDraw);
-        }
-      }
-
-    } else if (i == 2) {
-
-      abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-      auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
-      auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
-      abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, &normalMatrix[0][0]);
-      
-      if (!alvo.m_hit) {
-        if (fase.m_targetForms[i] == Forms::SQUARE) {
-          m_modelSquare.render(m_trianglesToDraw);
-        } else {
-          m_modelSphere.render(m_trianglesToDraw);
-        }
-      }
-
-    } else {
-
-      abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-      auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
-      auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
-      abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, &normalMatrix[0][0]);
-
-      if (!alvo.m_hit) {
-        if (fase.m_targetForms[i] == Forms::SQUARE) {
-          m_modelSquare.render(m_trianglesToDraw);
-        } else {
-          m_modelSphere.render(m_trianglesToDraw);
-        }
-      }
-    }
-  }
-}
 
 void Window::onPaintUI() {
   abcg::OpenGLWindow::onPaintUI();
 
   if (m_gameStatus == GameStatus::PLAYING) {
-    {// Tamanho e posição do widget
+    { // Tamanho e posição do widget
       auto const pointsWidget{ImVec2(210, 40)};
       ImGui::PushFont(m_font);
-      ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - pointsWidget.x - 10,  10));
+      ImGui::SetNextWindowPos(
+          ImVec2(m_viewportSize.x - pointsWidget.x - 10, 10));
       ImGui::SetNextWindowSize(pointsWidget);
       ImGui::Begin("Points", nullptr, ImGuiWindowFlags_NoDecoration);
 
@@ -431,7 +384,8 @@ void Window::onPaintUI() {
     {
       // Tamanho e posição do widget
       auto const widgetSize{ImVec2(210, 150)};
-      ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - widgetSize.x - 10, m_viewportSize.y - widgetSize.y - 10));
+      ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - widgetSize.x - 10,
+                                     m_viewportSize.y - widgetSize.y - 10));
       ImGui::SetNextWindowSize(widgetSize);
       ImGui::Begin("Forms", nullptr, ImGuiWindowFlags_NoDecoration);
       ImGui::PushFont(m_font);
@@ -439,10 +393,10 @@ void Window::onPaintUI() {
       ImGui::Text("Alvo");
       // Obter o contexto de desenho
       ImDrawList *drawList = ImGui::GetWindowDrawList();
-      
+
       // Posição inicial para desenhar dentro do widget
       ImVec2 widgetPos = ImGui::GetCursorScreenPos();
-      
+
       Fases fase = m_fases[m_faseAtual];
       auto targetColor = fase.m_targetColor * 255.0f;
       if (fase.m_targetForm == Forms::SPHERE) {
@@ -450,14 +404,16 @@ void Window::onPaintUI() {
         drawList->AddCircleFilled(
             ImVec2(widgetPos.x + 105, widgetPos.y + 55), // Centro
             50.0f,                                       // Raio
-            IM_COL32(targetColor.x, targetColor.y, targetColor.z, targetColor.w)             
-        );
+            IM_COL32(targetColor.x, targetColor.y, targetColor.z,
+                     targetColor.w));
       } else {
         drawList->AddRectFilled(
-            ImVec2(widgetPos.x + 55, widgetPos.y + 10),  // Canto superior esquerdo
-            ImVec2(widgetPos.x + 160, widgetPos.y + 105), // Canto inferior direito
-            IM_COL32(targetColor.x, targetColor.y, targetColor.z, targetColor.w)             
-        );
+            ImVec2(widgetPos.x + 55,
+                   widgetPos.y + 10), // Canto superior esquerdo
+            ImVec2(widgetPos.x + 160,
+                   widgetPos.y + 105), // Canto inferior direito
+            IM_COL32(targetColor.x, targetColor.y, targetColor.z,
+                     targetColor.w));
       }
 
       // Desenhar um quadrado preenchido
@@ -465,49 +421,47 @@ void Window::onPaintUI() {
       ImGui::End();
     }
   } else {
-  {
-    // Tamanho e posição do widget
-    auto const widgetSize{ImVec2(500, 170)};
-    ImGui::PushFont(m_font); // Fonte padrão
-    ImGui::SetNextWindowPos(ImVec2((m_viewportSize.x / 2) - widgetSize.x / 2, 
-                                   (m_viewportSize.y / 2) - widgetSize.y / 2));
-    ImGui::SetNextWindowSize(widgetSize);
-    ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_NoDecoration);
+    {
+      // Tamanho e posição do widget
+      auto const widgetSize{ImVec2(500, 170)};
+      ImGui::PushFont(m_font); // Fonte padrão
+      ImGui::SetNextWindowPos(
+          ImVec2((m_viewportSize.x / 2) - widgetSize.x / 2,
+                 (m_viewportSize.y / 2) - widgetSize.y / 2));
+      ImGui::SetNextWindowSize(widgetSize);
+      ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_NoDecoration);
 
-    // Centralizando o título
-    auto const titleText = "Starshooter";
-    auto const textSize = ImGui::CalcTextSize(titleText);
-    ImGui::SetCursorPosX((widgetSize.x - textSize.x) / 2);
-    
-    // Fonte maior para o título
-    ImGui::PushFont(m_font); // Fonte padrão
-    ImGui::Text("%s", titleText);
-    ImGui::PopFont();
+      // Centralizando o título
+      auto const titleText = "Starshooter";
+      auto const textSize = ImGui::CalcTextSize(titleText);
+      ImGui::SetCursorPosX((widgetSize.x - textSize.x) / 2);
 
-    // Espaço entre o título e o botão
-    ImGui::Dummy(ImVec2(0.0f, 20.0f));
+      // Fonte maior para o título
+      ImGui::PushFont(m_font); // Fonte padrão
+      ImGui::Text("%s", titleText);
+      ImGui::PopFont();
 
-    // Centralizando o botão
-    auto const buttonSize = ImVec2(200, 50); // Botão maior
-    ImGui::SetCursorPosX((widgetSize.x - buttonSize.x) / 2);
-    if (ImGui::Button("Start", buttonSize)) {
+      // Espaço entre o título e o botão
+      ImGui::Dummy(ImVec2(0.0f, 20.0f));
+
+      // Centralizando o botão
+      auto const buttonSize = ImVec2(200, 50); // Botão maior
+      ImGui::SetCursorPosX((widgetSize.x - buttonSize.x) / 2);
+      if (ImGui::Button("Start", buttonSize)) {
         // Ação ao clicar no botão
         m_gameStatus = GameStatus::PLAYING;
         m_totalPoints = 0;
         m_reduceFOV = true;
+      }
+      ImGui::Dummy(ImVec2(0.0f, 20.0f));
+      ImGui::PushFont(m_font); // Fonte padrão
+      ImGui::Text("Total points: %d", m_totalPoints);
+      ImGui::PopFont();
+
+      ImGui::End();
+      ImGui::PopFont();
     }
-    ImGui::Dummy(ImVec2(0.0f, 20.0f));
-    ImGui::PushFont(m_font); // Fonte padrão
-    ImGui::Text("Total points: %d", m_totalPoints);
-    ImGui::PopFont();
-
-
-    ImGui::End();
-    ImGui::PopFont();
-}
-
   }
-
 }
 
 void Window::onResize(glm::ivec2 const &size) {
