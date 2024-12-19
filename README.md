@@ -70,72 +70,17 @@ coordenação.
 
 ## Detalhes do código
 
-Para a janela temos que os seguintes métodos foram sobrescritos:
+Para a janela vamos analisar os seguintes métodos:
 
-   - onCreate()
    - onEvent()
+   - randomizeStar()
+   - setupPhases()
    - onUpdate()
    - onPaint()
    - onPaintUI()
    - onResize()
    - onDestroy()
    - computePoints()
-
-O onCreate() inicializa os recursos e configurações necessários para o funcionamento do jogo. Ele configura o OpenGL com fundo preto e teste de profundidade, carrega e prepara os shaders e modelos 3D (como esferas e cubos), define a matriz de visão da câmera e inicializa elementos da cena, como estrelas e alvos com eixos de rotação aleatórios. Além disso, prepara as fases do jogo, gerando formas e cores-alvo de maneira aleatória, e carrega uma fonte para a interface gráfica. Esse método garante que todos os elementos estejam configurados antes do início da execução. A animação de mudança de fase é gerada por um aumento repentino do FOV da câmera de 70 para 170.
-
-```cpp
-void Window::onCreate() {
-  auto const assetsPath{abcg::Application::getAssetsPath()};
-  abcg::glClearColor(0, 0, 0, 1);
-  abcg::glEnable(GL_DEPTH_TEST);
-
-  m_program =
-      abcg::createOpenGLProgram({{.source = assetsPath + "depth.vert",
-                                  .stage = abcg::ShaderStage::Vertex},
-                                 {.source = assetsPath + "depth.frag",
-                                  .stage = abcg::ShaderStage::Fragment}});
-
-  m_programForms =
-      abcg::createOpenGLProgram({{.source = assetsPath + "blinn-phong.vert",
-                                  .stage = abcg::ShaderStage::Vertex},
-                                 {.source = assetsPath + "blinn-phong.frag",
-                                  .stage = abcg::ShaderStage::Fragment}});
-
-  m_model.loadObj(assetsPath + "objmodels/geosphere.obj");
-  m_model.setupVAO(m_program);
-
-  m_modelSphere.loadObj(assetsPath + "objmodels/sphere.obj");
-  m_modelSphere.setupVAO(m_programForms);
-  m_trianglesToDraw = m_modelSphere.getNumTriangles();
-
-  m_modelSquare.loadObj(assetsPath + "objmodels/chamferbox.obj");
-  m_modelSquare.setupVAO(m_programForms);
-  m_trianglesToDraw = m_modelSquare.getNumTriangles();
-
-  m_viewMatrix = m_camera.getViewMatrix();
-
-  // Setup stars
-  for (auto &star : m_stars) {
-    randomizeStar(star);
-  }
-
-  for (auto &alvo : m_alvos) {
-    alvo.m_rotationAxis = glm::sphericalRand(1.0f);
-  }
-
-  auto const filename{abcg::Application::getAssetsPath() +
-                      "Inconsolata-Medium.ttf"};
-  m_font = ImGui::GetIO().Fonts->AddFontFromFileTTF(filename.c_str(), 20.0f);
-  if (m_font == nullptr) {
-    throw abcg::RuntimeError{"Cannot load font file"};
-  }
-  
-  std::uniform_int_distribution<int> distribuicao(0, 1000);
-  setupPhases(distribuicao);
-  
-  m_camera.m_FOV = 170.0f;
-}
-```
 
 O onEvent() é chamado para lidar com eventos do SDL, no nosso caso foi sobrescrito para lidar com movimento do mouse e clicks do mouse. Atribuindo a uma variável global m_mousePosition os valores das coordenadas do mouse, sempre que o mesmo for movido. Caso o evento seja um click do mouse então se checa o mouse está dentro do hitbox dos alvos (as esferas ou os cubos) para se setar o valor de alvo.m_hit como true, marcando que o alvo foi acertado.
 
@@ -157,7 +102,51 @@ void Window::onEvent(SDL_Event const &event) {
 }
 ```
 
-O onUpdate() é responsável por atualizar o estado da janela e seus elementos a cada quadro. Ele incrementa o tempo acumulado para alternar a fase do jogo a cada 5 segundos, atualiza a posição da câmera com base nos comandos de movimento e calcula a nova matriz de projeção. As estrelas na cena têm suas posições incrementadas ao longo do eixo Z, retornando a uma posição aleatória com coordenada z = -100 quando passam pela câmera, criando um efeito de movimento contínuo. Além disso, ele chama o método detectTargetPosition, que calcula as coordenadas dos alvos na tela com base nas transformações da câmera, determina o raio aparente dos alvos, e verifica se o cursor do mouse está dentro dos limites de cada alvo, atualizando o estado correspondente (m_mouseInside). Esse método garante a atualização contínua da lógica e dos elementos gráficos do jogo.
+O método randomizeStar() gera coordenadas centrais e eixos de rotação aleatórios paras as esferas do background. Já o método setupPhases() faz o mesmo para os 4 alvos em tela e o alvo de referência no canto inferior direito.
+
+```cpp
+void Window::randomizeStar(Star &star) {
+  // Random position: x and y in [-20, 20), z in [-100, 0)
+  std::uniform_real_distribution<float> distPosXY(-20.0f, 20.0f);
+  std::uniform_real_distribution<float> distPosZ(-100.0f, 0.0f);
+  star.m_position =
+      glm::vec3(distPosXY(m_randomEngine), distPosXY(m_randomEngine),
+                distPosZ(m_randomEngine));
+
+  // Random rotation axis
+  star.m_rotationAxis = glm::sphericalRand(1.0f);
+}
+
+void Window::setupPhases(std::uniform_int_distribution<int> distribuicao) {
+  // para cada fase
+  for (auto i = 0; i < (int)m_fases.size(); i++) {
+    auto &fase = m_fases[i];
+    fase.m_points = 0; // pontos iniciais adquiridos naquela fase
+
+    // preenche quais formas terao naquela fase
+    for (auto j = 0; j < (int)fase.m_targetForms.size(); j++) {
+      int numero = distribuicao(m_randomEngine) % 2;
+      if (numero == 0) {
+        fase.m_targetForms[j] = Forms::SQUARE;
+      } else {
+        fase.m_targetForms[j] = Forms::SPHERE;
+      }
+    }
+
+    // alvo é uma forma aleatoria dos alvos criados na fase
+    // garante que sempre vai ter um alvo valido
+    int selecAlvo =
+        distribuicao(m_randomEngine) % (int)fase.m_targetForms.size();
+    fase.m_targetForm = fase.m_targetForms[selecAlvo];
+
+    // seleciona cor aleatoria entre verde e vermelho
+    int selecCor = distribuicao(m_randomEngine) % 2;
+    fase.m_targetColor = m_colors[selecCor];
+  }
+}
+```
+
+O onUpdate() é responsável por atualizar o estado da janela e seus elementos a cada quadro. Ele incrementa o tempo acumulado para alternar a fase do jogo a cada 5 segundos, realiza a transição gradual de fov da câmera entre 170 para 70 (na animação de início de uma fase) e calcula a nova matriz de projeção. As estrelas na cena têm suas posições incrementadas ao longo do eixo Z, retornando a uma posição aleatória com coordenada z = -100 quando passam pela câmera, criando um efeito de movimento contínuo. Além disso, ele chama o método detectTargetPosition, que calcula as coordenadas dos alvos na tela com base nas transformações da câmera, determina o raio aparente dos alvos, e verifica se o cursor do mouse está dentro dos limites de cada alvo, atualizando o estado correspondente (m_mouseInside). Esse método garante a atualização contínua da lógica e dos elementos gráficos do jogo.
 
 ```cpp
 void Window::onUpdate() {
@@ -493,8 +482,10 @@ void Model::loadObj(std::string_view path, bool standardize) {
   m_vertices.clear();
   m_indices.clear();
 
+  m_hasNormals = false;
+
   // A key:value map with key=Vertex and value=index
-  std::unordered_map<VertexBG, GLuint> hash{};
+  std::unordered_map<Vertex, GLuint> hash{};
 
   // Loop over shapes
   for (auto const &shape : shapes) {
@@ -505,11 +496,21 @@ void Model::loadObj(std::string_view path, bool standardize) {
 
       // Vertex position
       auto const startIndex{3 * index.vertex_index};
-      auto const vx{attrib.vertices.at(startIndex + 0)};
-      auto const vy{attrib.vertices.at(startIndex + 1)};
-      auto const vz{attrib.vertices.at(startIndex + 2)};
+      glm::vec3 position{attrib.vertices.at(startIndex + 0),
+                         attrib.vertices.at(startIndex + 1),
+                         attrib.vertices.at(startIndex + 2)};
 
-      VertexBG const vertex{.position = {vx, vy, vz}};
+      // Vertex normal
+      glm::vec3 normal{};
+      if (index.normal_index >= 0) {
+        m_hasNormals = true;
+        auto const normalStartIndex{3 * index.normal_index};
+        normal = {attrib.normals.at(normalStartIndex + 0),
+                  attrib.normals.at(normalStartIndex + 1),
+                  attrib.normals.at(normalStartIndex + 2)};
+      }
+
+      Vertex const vertex{.position = position, .normal = normal};
 
       // If hash doesn't contain this vertex
       if (!hash.contains(vertex)) {
@@ -525,6 +526,10 @@ void Model::loadObj(std::string_view path, bool standardize) {
 
   if (standardize) {
     Model::standardize();
+  }
+
+  if (!m_hasNormals) {
+    computeNormals();
   }
 
   createBuffers();
@@ -567,12 +572,40 @@ void Model::setupVAO(GLuint program) {
   if (positionAttribute >= 0) {
     abcg::glEnableVertexAttribArray(positionAttribute);
     abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
-                                sizeof(VertexBG), nullptr);
+                                sizeof(Vertex), nullptr);
+  }
+
+  auto const normalAttribute{abcg::glGetAttribLocation(program, "inNormal")};
+  if (normalAttribute >= 0) {
+    abcg::glEnableVertexAttribArray(normalAttribute);
+    auto const offset{offsetof(Vertex, normal)};
+    abcg::glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, GL_FALSE,
+                                sizeof(Vertex),
+                                reinterpret_cast<void *>(offset));
   }
 
   // End of binding
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
   abcg::glBindVertexArray(0);
+}
+
+void Model::standardize() {
+  // Center to origin and normalize largest bound to [-1, 1]
+
+  // Get bounds
+  glm::vec3 max(std::numeric_limits<float>::lowest());
+  glm::vec3 min(std::numeric_limits<float>::max());
+  for (auto const &vertex : m_vertices) {
+    max = glm::max(max, vertex.position);
+    min = glm::min(min, vertex.position);
+  }
+
+  // Center and scale
+  auto const center{(min + max) / 2.0f};
+  auto const scaling{2.0f / glm::length(max - min)};
+  for (auto &vertex : m_vertices) {
+    vertex.position = (vertex.position - center) * scaling;
+  }
 }
 ```
 
