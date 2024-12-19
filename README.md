@@ -70,7 +70,74 @@ coordenação.
 
 ## Detalhes do código
 
-A interatividade da aplicação é dada pelo método onEvent(). Que é chamado para lidar com eventos do SDL, no nosso caso foi sobrescrito para lidar com movimento do mouse e clicks do mouse. Atribuindo a uma variável global m_mousePosition os valores das coordenadas do mouse, sempre que o mesmo for movido. Caso o evento seja um click do mouse então se checa o mouse está dentro do hitbox dos alvos (as esferas ou os cubos) para se setar o valor de alvo.m_hit como true, marcando que o alvo foi acertado.
+Para a janela temos que os seguintes métodos foram sobrescritos:
+
+   - onCreate()
+   - onEvent()
+   - onUpdate()
+   - onPaint()
+   - onPaintUI()
+   - onResize()
+   - onDestroy()
+   - computePoints()
+
+O onCreate() inicializa os recursos e configurações necessários para o funcionamento do jogo. Ele configura o OpenGL com fundo preto e teste de profundidade, carrega e prepara os shaders e modelos 3D (como esferas e cubos), define a matriz de visão da câmera e inicializa elementos da cena, como estrelas e alvos com eixos de rotação aleatórios. Além disso, prepara as fases do jogo, gerando formas e cores-alvo de maneira aleatória, e carrega uma fonte para a interface gráfica. Esse método garante que todos os elementos estejam configurados antes do início da execução. A animação de mudança de fase é gerada por um aumento repentino do FOV da câmera de 70 para 170.
+
+```cpp
+void Window::onCreate() {
+  auto const assetsPath{abcg::Application::getAssetsPath()};
+  abcg::glClearColor(0, 0, 0, 1);
+  abcg::glEnable(GL_DEPTH_TEST);
+
+  m_program =
+      abcg::createOpenGLProgram({{.source = assetsPath + "depth.vert",
+                                  .stage = abcg::ShaderStage::Vertex},
+                                 {.source = assetsPath + "depth.frag",
+                                  .stage = abcg::ShaderStage::Fragment}});
+
+  m_programForms =
+      abcg::createOpenGLProgram({{.source = assetsPath + "blinn-phong.vert",
+                                  .stage = abcg::ShaderStage::Vertex},
+                                 {.source = assetsPath + "blinn-phong.frag",
+                                  .stage = abcg::ShaderStage::Fragment}});
+
+  m_model.loadObj(assetsPath + "objmodels/geosphere.obj");
+  m_model.setupVAO(m_program);
+
+  m_modelSphere.loadObj(assetsPath + "objmodels/sphere.obj");
+  m_modelSphere.setupVAO(m_programForms);
+  m_trianglesToDraw = m_modelSphere.getNumTriangles();
+
+  m_modelSquare.loadObj(assetsPath + "objmodels/chamferbox.obj");
+  m_modelSquare.setupVAO(m_programForms);
+  m_trianglesToDraw = m_modelSquare.getNumTriangles();
+
+  m_viewMatrix = m_camera.getViewMatrix();
+
+  // Setup stars
+  for (auto &star : m_stars) {
+    randomizeStar(star);
+  }
+
+  for (auto &alvo : m_alvos) {
+    alvo.m_rotationAxis = glm::sphericalRand(1.0f);
+  }
+
+  auto const filename{abcg::Application::getAssetsPath() +
+                      "Inconsolata-Medium.ttf"};
+  m_font = ImGui::GetIO().Fonts->AddFontFromFileTTF(filename.c_str(), 20.0f);
+  if (m_font == nullptr) {
+    throw abcg::RuntimeError{"Cannot load font file"};
+  }
+  
+  std::uniform_int_distribution<int> distribuicao(0, 1000);
+  setupPhases(distribuicao);
+  
+  m_camera.m_FOV = 170.0f;
+}
+```
+
+O onEvent() é chamado para lidar com eventos do SDL, no nosso caso foi sobrescrito para lidar com movimento do mouse e clicks do mouse. Atribuindo a uma variável global m_mousePosition os valores das coordenadas do mouse, sempre que o mesmo for movido. Caso o evento seja um click do mouse então se checa o mouse está dentro do hitbox dos alvos (as esferas ou os cubos) para se setar o valor de alvo.m_hit como true, marcando que o alvo foi acertado.
 
 ```cpp
 void Window::onEvent(SDL_Event const &event) {
@@ -90,90 +157,16 @@ void Window::onEvent(SDL_Event const &event) {
 }
 ```
 
-O onCreate() inicializa os recursos e configurações necessários para o funcionamento do jogo. Ele configura o OpenGL com fundo preto e teste de profundidade, carrega e prepara os shaders e modelos 3D (como esferas e cubos), define a matriz de visão da câmera e inicializa elementos da cena, como estrelas e alvos com eixos de rotação aleatórios. Além disso, prepara as fases do jogo, gerando formas e cores-alvo de maneira aleatória, e carrega uma fonte para a interface gráfica. Esse método garante que todos os elementos estejam configurados antes do início da execução. A animação de mudança de fase é gerada por um aumento repentino do FOV da câmera de 70 para 170.
-
-```cpp
-void Window::onCreate() {
-  auto const assetsPath{abcg::Application::getAssetsPath()};
-
-  abcg::glClearColor(0, 0, 0, 1);
-  abcg::glEnable(GL_DEPTH_TEST);
-
-  m_program =
-      abcg::createOpenGLProgram({{.source = assetsPath + "depth.vert",
-                                  .stage = abcg::ShaderStage::Vertex},
-                                 {.source = assetsPath + "depth.frag",
-                                  .stage = abcg::ShaderStage::Fragment}});
-
-  m_model.loadObj(assetsPath + "objmodels/geosphere.obj");
-  m_model.setupVAO(m_program);
-
-  m_modelSphere.loadObj(assetsPath + "objmodels/sphere.obj");
-  m_modelSphere.setupVAO(m_program);
-  m_trianglesToDraw = m_modelSphere.getNumTriangles();
-
-  m_modelSquare.loadObj(assetsPath + "objmodels/chamferbox.obj");
-  m_modelSquare.setupVAO(m_program);
-  m_trianglesToDraw = m_modelSquare.getNumTriangles();
-
-
-  m_viewMatrix = m_camera.getViewMatrix();
-
-  // Setup stars
-  for (auto &star : m_stars) {
-    randomizeStar(star);
-  }
-
-  for (auto &alvo : m_alvos) {
-    alvo.m_rotationAxis = glm::sphericalRand(1.0f);
-  }
-
-  auto const filename{abcg::Application::getAssetsPath() +
-                      "Inconsolata-Medium.ttf"};
-  m_font = ImGui::GetIO().Fonts->AddFontFromFileTTF(filename.c_str(), 20.0f);
-  if (m_font == nullptr) {
-    throw abcg::RuntimeError{"Cannot load font file"};
-  }
-  std::uniform_int_distribution<int> distribuicao(0, 1000);
-  // para cada fase
-  for (auto i = 0; i < (int)m_fases.size(); i++) {
-    auto &fase = m_fases[i];
-    fase.m_points = 0; // pontos iniciais adquiridos naquela fase
-    
-    // preenche quais formas terao naquela fase
-    for (auto j = 0; j < (int)fase.m_targetForms.size(); j++){
-      int numero = distribuicao(m_randomEngine) % 2;
-      if (numero == 0) {
-        fase.m_targetForms[j] = Forms::SQUARE;
-      } else {
-        fase.m_targetForms[j] = Forms::SPHERE;
-      }
-    }
-    
-    // alvo é uma forma aleatoria dos alvos criados na fase
-    // garante que sempre vai ter um alvo valido
-    int selecAlvo = distribuicao(m_randomEngine) % (int)fase.m_targetForms.size();
-    fase.m_targetForm = fase.m_targetForms[selecAlvo];
-
-    // seleciona cor aleatoria entre verde e vermelho
-    int selecCor = distribuicao(m_randomEngine) % 2;
-    fase.m_targetColor = m_colors[selecCor];
-  }
-
-  m_camera.m_FOV = 170.0f;
-}
-```
-
 O onUpdate() é responsável por atualizar o estado da janela e seus elementos a cada quadro. Ele incrementa o tempo acumulado para alternar a fase do jogo a cada 5 segundos, atualiza a posição da câmera com base nos comandos de movimento e calcula a nova matriz de projeção. As estrelas na cena têm suas posições incrementadas ao longo do eixo Z, retornando a uma posição aleatória com coordenada z = -100 quando passam pela câmera, criando um efeito de movimento contínuo. Além disso, ele chama o método detectTargetPosition, que calcula as coordenadas dos alvos na tela com base nas transformações da câmera, determina o raio aparente dos alvos, e verifica se o cursor do mouse está dentro dos limites de cada alvo, atualizando o estado correspondente (m_mouseInside). Esse método garante a atualização contínua da lógica e dos elementos gráficos do jogo.
 
 ```cpp
 void Window::onUpdate() {
   // Increase angle by 90 degrees per second
   auto const deltaTime{gsl::narrow_cast<float>(getDeltaTime())};
-  
+
   if (m_reduceFOV) {
-    m_timeAccFOV += deltaTime; // Acumula tempo
-    float const duration = 1.0f; // Duração da transição em segundos
+    m_timeAccFOV += deltaTime;   // Acumula tempo
+    float const duration = 0.5f; // Duração da transição em segundos
     if (m_timeAccFOV <= duration) {
       // Interpola o FOV de 170 para 70
       float const t = m_timeAccFOV / duration; // Normaliza entre 0 e 1
@@ -185,27 +178,39 @@ void Window::onUpdate() {
     }
   }
 
-
   if (m_gameStatus == GameStatus::PLAYING) {
-    if (m_faseAtual == (int)m_fases.size()){
+    // jogo acabou
+    if (m_faseAtual == (int)m_fases.size()) {
       m_faseAtual = 0;
       m_camera.m_FOV = 170.0f;
+      m_timeAccFOV = 0;
+      m_reduceFOV = false;
       m_gameStatus = GameStatus::ON_MENU;
+        std::uniform_int_distribution<int> distribuicao(0, 1000);
+
+      setupPhases(distribuicao);
     }
+    
+    // a cada 5s vai trocar de alvos na tela
     m_timeAcc += deltaTime;
-    if (m_timeAcc >= 6.0f) {
-      fmt::print("fase {}\n", m_faseAtual);  
-      for (auto &a: m_alvos){
+    if (m_timeAcc >= 5.0f) {
+      for (auto &a : m_alvos) {
         // reseta os alvos quando muda de fase
-        a.m_hit = false; 
+        a.m_hit = false;
         a.m_alreadyComputePoint = false;
       }
+
+      std::uniform_int_distribution<int> distr(0,3000);
+
+      int idxMat = distr(m_randomEngine) % (int)m_targetsMaterials.size();
+      m_Ka = m_targetsMaterials[idxMat].Ka;
+      m_Kd = m_targetsMaterials[idxMat].Kd;
+
       m_faseAtual++;
       m_timeAcc = 0.0f; // Reinicia o acumulador
     }
   }
 
-  // control camera movement
   m_camera.dolly(m_dollySpeed * deltaTime);
   m_camera.truck(m_truckSpeed * deltaTime);
   m_camera.pan(m_panSpeed * deltaTime);
@@ -225,7 +230,7 @@ void Window::onUpdate() {
       star.m_position.z = -100.0f; // Back to -00
     }
   }
-  if (m_gameStatus == GameStatus::PLAYING){
+  if (m_gameStatus == GameStatus::PLAYING) {
     detectTargetPosition();
     computePoints();
   }
@@ -240,25 +245,22 @@ void Window::onPaint() {
 
   abcg::glViewport(0, 0, m_viewportSize.x, m_viewportSize.y);
 
+  // Utilizado para renderizar o fundo (o campo de estrelas)
   abcg::glUseProgram(m_program);
 
   // Get location of uniform variables
   auto const viewMatrixLoc{abcg::glGetUniformLocation(m_program, "viewMatrix")};
   auto const projMatrixLoc{abcg::glGetUniformLocation(m_program, "projMatrix")};
+
   auto const modelMatrixLoc{
       abcg::glGetUniformLocation(m_program, "modelMatrix")};
   auto const colorLoc{abcg::glGetUniformLocation(m_program, "color")};
-
   abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
                            &m_camera.getViewMatrix()[0][0]);
   abcg::glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE,
                            &m_camera.getProjMatrix()[0][0]);
 
   abcg::glUniform4f(colorLoc, 1.0f, 1.0f, 1.0f, 1.0f); // White
-
-  if (m_gameStatus == GameStatus::PLAYING) {
-    renderTargets(colorLoc, modelMatrixLoc, m_fases[m_faseAtual]);
-  }
 
   // Render each star
   for (auto &star : m_stars) {
@@ -274,6 +276,83 @@ void Window::onPaint() {
     m_model.render();
   }
 
+  // Outro shader é utilizado para renderizar os alvos, para poder aplicar iluminação
+
+  abcg::glUseProgram(m_programForms);
+  // get location of forms uniforms variables
+  auto const viewFormsMatrixLoc{
+      abcg::glGetUniformLocation(m_programForms, "viewMatrix")};
+  auto const projFormsMatrixLoc{
+      abcg::glGetUniformLocation(m_programForms, "projMatrix")};
+  auto const lightDirLoc{
+      abcg::glGetUniformLocation(m_programForms, "lightDirWorldSpace")};
+
+  auto const modelFormsMatrixLoc{
+      abcg::glGetUniformLocation(m_programForms, "modelMatrix")};
+  auto const normalMatrixLoc{
+      abcg::glGetUniformLocation(m_programForms, "normalMatrix")};
+  auto const shininessLoc{
+      abcg::glGetUniformLocation(m_programForms, "shininess")};
+
+  // Iluminação e Materiais
+  auto const IaLoc{abcg::glGetUniformLocation(m_programForms, "Ia")};
+  auto const IdLoc{abcg::glGetUniformLocation(m_programForms, "Id")};
+  auto const IsLoc{abcg::glGetUniformLocation(m_programForms, "Is")};
+
+  auto const KaLoc{abcg::glGetUniformLocation(m_programForms, "Ka")};
+  auto const KdLoc{abcg::glGetUniformLocation(m_programForms, "Kd")};
+  auto const KsLoc{abcg::glGetUniformLocation(m_programForms, "Ks")};
+
+  abcg::glUniformMatrix4fv(viewFormsMatrixLoc, 1, GL_FALSE,
+                           &m_camera.getViewMatrix()[0][0]);
+  abcg::glUniformMatrix4fv(projFormsMatrixLoc, 1, GL_FALSE,
+                           &m_camera.getProjMatrix()[0][0]);
+
+  abcg::glUniform4fv(lightDirLoc, 1, &m_lightDir.x);
+  abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
+  abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
+  abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
+  
+  
+   
+  Fases fase = m_fases[m_faseAtual]; 
+  if (m_gameStatus == GameStatus::PLAYING) {
+    for (auto i = 0; i < (int)m_alvos.size(); i++) {
+            auto &alvo = m_alvos[i];
+      glm::mat4 model{1.0f};
+      glm::vec3 targetPosition = m_targetScreenPos[i];
+
+      alvo.m_positionTarget = targetPosition;
+      model = glm::translate(model, alvo.m_positionTarget);
+      model = glm::rotate(model, m_angle, alvo.m_rotationAxis);
+
+      if (fase.m_targetForms[i] == Forms::SQUARE) {
+        alvo.m_scaleTarget = {0.2f, 0.2f, 0.2f};
+      }
+
+      model = glm::scale(model, alvo.m_scaleTarget);
+
+      abcg::glUniformMatrix4fv(modelFormsMatrixLoc, 1, GL_FALSE, &model[0][0]);
+
+      abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+      abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+      abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+      abcg::glUniform1f(shininessLoc, m_shininess);
+
+      auto const modelViewMatrix{glm::mat3(m_camera.getViewMatrix() * model)};
+      auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
+      abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                               &normalMatrix[0][0]);
+      if (!alvo.m_hit) {
+        if (fase.m_targetForms[i] == Forms::SQUARE) {
+          m_modelSquare.render(m_trianglesToDraw);
+        } else {
+          m_modelSphere.render(m_trianglesToDraw);
+        }
+      }
+    }
+  }
+
   abcg::glUseProgram(0);
 }
 ```
@@ -285,10 +364,11 @@ void Window::onPaintUI() {
   abcg::OpenGLWindow::onPaintUI();
 
   if (m_gameStatus == GameStatus::PLAYING) {
-    {// Tamanho e posição do widget
+    { // Tamanho e posição do widget
       auto const pointsWidget{ImVec2(210, 40)};
       ImGui::PushFont(m_font);
-      ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - pointsWidget.x - 10,  10));
+      ImGui::SetNextWindowPos(
+          ImVec2(m_viewportSize.x - pointsWidget.x - 10, 10));
       ImGui::SetNextWindowSize(pointsWidget);
       ImGui::Begin("Points", nullptr, ImGuiWindowFlags_NoDecoration);
 
@@ -299,7 +379,8 @@ void Window::onPaintUI() {
     {
       // Tamanho e posição do widget
       auto const widgetSize{ImVec2(210, 150)};
-      ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - widgetSize.x - 10, m_viewportSize.y - widgetSize.y - 10));
+      ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - widgetSize.x - 10,
+                                     m_viewportSize.y - widgetSize.y - 10));
       ImGui::SetNextWindowSize(widgetSize);
       ImGui::Begin("Forms", nullptr, ImGuiWindowFlags_NoDecoration);
       ImGui::PushFont(m_font);
@@ -307,10 +388,10 @@ void Window::onPaintUI() {
       ImGui::Text("Alvo");
       // Obter o contexto de desenho
       ImDrawList *drawList = ImGui::GetWindowDrawList();
-      
+
       // Posição inicial para desenhar dentro do widget
       ImVec2 widgetPos = ImGui::GetCursorScreenPos();
-      
+
       Fases fase = m_fases[m_faseAtual];
       auto targetColor = fase.m_targetColor * 255.0f;
       if (fase.m_targetForm == Forms::SPHERE) {
@@ -318,14 +399,16 @@ void Window::onPaintUI() {
         drawList->AddCircleFilled(
             ImVec2(widgetPos.x + 105, widgetPos.y + 55), // Centro
             50.0f,                                       // Raio
-            IM_COL32(targetColor.x, targetColor.y, targetColor.z, targetColor.w)             
-        );
+            IM_COL32(targetColor.x, targetColor.y, targetColor.z,
+                     targetColor.w));
       } else {
         drawList->AddRectFilled(
-            ImVec2(widgetPos.x + 55, widgetPos.y + 10),  // Canto superior esquerdo
-            ImVec2(widgetPos.x + 160, widgetPos.y + 105), // Canto inferior direito
-            IM_COL32(targetColor.x, targetColor.y, targetColor.z, targetColor.w)             
-        );
+            ImVec2(widgetPos.x + 55,
+                   widgetPos.y + 10), // Canto superior esquerdo
+            ImVec2(widgetPos.x + 160,
+                   widgetPos.y + 105), // Canto inferior direito
+            IM_COL32(targetColor.x, targetColor.y, targetColor.z,
+                     targetColor.w));
       }
 
       // Desenhar um quadrado preenchido
@@ -333,49 +416,47 @@ void Window::onPaintUI() {
       ImGui::End();
     }
   } else {
-{
-    // Tamanho e posição do widget
-    auto const widgetSize{ImVec2(500, 170)};
-    ImGui::PushFont(m_font); // Fonte padrão
-    ImGui::SetNextWindowPos(ImVec2((m_viewportSize.x / 2) - widgetSize.x / 2, 
-                                   (m_viewportSize.y / 2) - widgetSize.y / 2));
-    ImGui::SetNextWindowSize(widgetSize);
-    ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_NoDecoration);
+    {
+      // Tamanho e posição do widget
+      auto const widgetSize{ImVec2(500, 170)};
+      ImGui::PushFont(m_font); // Fonte padrão
+      ImGui::SetNextWindowPos(
+          ImVec2((m_viewportSize.x / 2) - widgetSize.x / 2,
+                 (m_viewportSize.y / 2) - widgetSize.y / 2));
+      ImGui::SetNextWindowSize(widgetSize);
+      ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_NoDecoration);
 
-    // Centralizando o título
-    auto const titleText = "Starshooter";
-    auto const textSize = ImGui::CalcTextSize(titleText);
-    ImGui::SetCursorPosX((widgetSize.x - textSize.x) / 2);
-    
-    // Fonte maior para o título
-    ImGui::PushFont(m_font); // Fonte padrão
-    ImGui::Text("%s", titleText);
-    ImGui::PopFont();
+      // Centralizando o título
+      auto const titleText = "Starshooter";
+      auto const textSize = ImGui::CalcTextSize(titleText);
+      ImGui::SetCursorPosX((widgetSize.x - textSize.x) / 2);
 
-    // Espaço entre o título e o botão
-    ImGui::Dummy(ImVec2(0.0f, 20.0f));
+      // Fonte maior para o título
+      ImGui::PushFont(m_font); // Fonte padrão
+      ImGui::Text("%s", titleText);
+      ImGui::PopFont();
 
-    // Centralizando o botão
-    auto const buttonSize = ImVec2(200, 50); // Botão maior
-    ImGui::SetCursorPosX((widgetSize.x - buttonSize.x) / 2);
-    if (ImGui::Button("Start", buttonSize)) {
+      // Espaço entre o título e o botão
+      ImGui::Dummy(ImVec2(0.0f, 20.0f));
+
+      // Centralizando o botão
+      auto const buttonSize = ImVec2(200, 50); // Botão maior
+      ImGui::SetCursorPosX((widgetSize.x - buttonSize.x) / 2);
+      if (ImGui::Button("Start", buttonSize)) {
         // Ação ao clicar no botão
         m_gameStatus = GameStatus::PLAYING;
         m_totalPoints = 0;
         m_reduceFOV = true;
+      }
+      ImGui::Dummy(ImVec2(0.0f, 20.0f));
+      ImGui::PushFont(m_font); // Fonte padrão
+      ImGui::Text("Total points: %d", m_totalPoints);
+      ImGui::PopFont();
+
+      ImGui::End();
+      ImGui::PopFont();
     }
-    ImGui::Dummy(ImVec2(0.0f, 20.0f));
-    ImGui::PushFont(m_font); // Fonte padrão
-    ImGui::Text("Total points: %d", m_totalPoints);
-    ImGui::PopFont();
-
-
-    ImGui::End();
-    ImGui::PopFont();
-}
-
   }
-
 }
 ```
 
@@ -503,6 +584,13 @@ A lógica de câmera look at é feita pala classe câmera. Que contêm os seguin
    - setFov()
 
 Essa implementação de uma câmera "LookAt" utiliza a biblioteca GLM para calcular e manipular as matrizes de projeção e visão de uma câmera 3D. A câmera é configurada com uma posição (`eye`), um ponto de interesse (`at`) e um vetor para cima (`up`). O método `computeProjectionMatrix` calcula a matriz de projeção perspectiva com base no campo de visão (FOV) e a proporção da janela, enquanto o método `computeViewMatrix` cria a matriz de visão com a função `glm::lookAt`, que orienta a câmera para o ponto de interesse.
+
+## Relação de onde os requisitos foram implementados
+
+   - uso de gráficos 3D com primitivas do OpenGL: na classe model.
+   - interação do usuário: no método OnEvent() da classe window.
+   - animações: em diversas partes do código. A movimentação das esferas do background se dá no método OnUpdate() da classe window. A mudança de fov da câmera para simular aceleração desta entre as fases está no método OnUpdate() e OnCreate() da classe window. As rotações dos alvos e das esferas do background estão no método OnPaint(), sendo aplicadas antes de renderizar cada uma dessas formas.
+   - iluminação: no método OnPaint() da classe window.
 
 # Resultados e análise
 
