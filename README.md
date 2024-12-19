@@ -70,16 +70,25 @@ coordenação.
 
 ## Detalhes do código
 
-Para a janela temos que os seguintes métodos foram sobrescritos:
+A interatividade da aplicação é dada pelo método onEvent(). Que é chamado para lidar com eventos do SDL, no nosso caso foi sobrescrito para lidar com movimento do mouse e clicks do mouse. Atribuindo a uma variável global m_mousePosition os valores das coordenadas do mouse, sempre que o mesmo for movido. Caso o evento seja um click do mouse então se checa o mouse está dentro do hitbox dos alvos (as esferas ou os cubos) para se setar o valor de alvo.m_hit como true, marcando que o alvo foi acertado.
 
-   - onCreate()
-   - onEvent()
-   - onUpdate()
-   - onPaint()
-   - onPaintUI()
-   - onResize()
-   - onDestroy()
-   - computePoints()
+```cpp
+void Window::onEvent(SDL_Event const &event) {
+
+  if (event.type == SDL_MOUSEBUTTONUP) {
+    if (event.button.button == SDL_BUTTON_LEFT) {
+      for (auto &alvo : m_alvos) {
+        if (alvo.m_mouseInside) {
+          alvo.m_hit = true;
+        }
+      }
+    }
+  }
+  if (event.type == SDL_MOUSEMOTION) {
+    SDL_GetMouseState(&m_mousePosition.x, &m_mousePosition.y);
+  }
+}
+```
 
 O onCreate() inicializa os recursos e configurações necessários para o funcionamento do jogo. Ele configura o OpenGL com fundo preto e teste de profundidade, carrega e prepara os shaders e modelos 3D (como esferas e cubos), define a matriz de visão da câmera e inicializa elementos da cena, como estrelas e alvos com eixos de rotação aleatórios. Além disso, prepara as fases do jogo, gerando formas e cores-alvo de maneira aleatória, e carrega uma fonte para a interface gráfica. Esse método garante que todos os elementos estejam configurados antes do início da execução. A animação de mudança de fase é gerada por um aumento repentino do FOV da câmera de 70 para 170.
 
@@ -152,26 +161,6 @@ void Window::onCreate() {
   }
 
   m_camera.m_FOV = 170.0f;
-}
-```
-
-O onEvent() é chamado para lidar com eventos do SDL, no nosso caso foi sobrescrito para lidar com movimento do mouse e clicks do mouse. Atribuindo a uma variável global m_mousePosition os valores das coordenadas do mouse, sempre que o mesmo for movido. Caso o evento seja um click do mouse então se checa o mouse está dentro do hitbox dos alvos (as esferas ou os cubos) para se setar o valor de alvo.m_hit como true, marcando que o alvo foi acertado.
-
-```cpp
-void Window::onEvent(SDL_Event const &event) {
-
-  if (event.type == SDL_MOUSEBUTTONUP) {
-    if (event.button.button == SDL_BUTTON_LEFT) {
-      for (auto &alvo : m_alvos) {
-        if (alvo.m_mouseInside) {
-          alvo.m_hit = true;
-        }
-      }
-    }
-  }
-  if (event.type == SDL_MOUSEMOTION) {
-    SDL_GetMouseState(&m_mousePosition.x, &m_mousePosition.y);
-  }
 }
 ```
 
