@@ -521,7 +521,7 @@ Essa implementação de uma câmera "LookAt" utiliza a biblioteca GLM para calcu
 
 # Conclusões
 
-Dentre os pontos de destaque do projeto temos o background com efeito starfield que dá impressão de aceleração da camêra passando por um campo de asteróides, a geração aleatória de formas a serem renderizadas pela pipe-line gráfica do OpenGL, a interatividade do usuário através da detecção de eventos SDL (movimentação e clicks de mouse) e criação de hitboxes, e iluminação das formas renderizadas. Uma das limitações é a falta da implementação de texturas (que era um dos requisitos), porém considerando o intervalo de tempo que nós tinhamos para fazer essa entrega acreditamos que o objetivo foi atingido. No futuro, a texturização das formas deveriam ser implementada.
+Dentre os pontos de destaque do projeto temos o background com efeito starfield que dá impressão de aceleração da camêra passando por um campo de asteróides, a geração aleatória de formas a serem renderizadas pela pipe-line gráfica do OpenGL, a interatividade do usuário através da detecção de eventos SDL (movimentação e clicks de mouse) e criação de hitboxes, e iluminação das formas renderizadas. Uma das limitações é a falta da implementação de texturas (que era um dos requisitos), porém considerando o intervalo de tempo que nós tinhamos para fazer essa entrega acreditamos que o objetivo foi atingido. No futuro, a texturização das formas deveria ser implementada.
 
 # Referências
 
