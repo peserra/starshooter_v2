@@ -2,9 +2,9 @@
 
 ## Nome dos integrantes
 
-   - Gustavo da Silva Bocato
    - Pedro de Luca Occulate Serra
    - Gabriela Sampaio Magiri
+   - Gustavo da Silva Bocato
 
 ## Introdução
 
@@ -66,13 +66,7 @@ coordenação.
 - **Efeito de Starfield:** Fundo animado com esferas que se movem em direção à câmera, simulando um campo de estrelas.
 - **Pontuação:** Sistema de pontuação que recompensa acertos e penaliza erros.
 - **Gráficos 3D:** Renderização de formas em 3D para uma melhor experiência visual.
-
-## Tecnologias Utilizadas
-
-- **Linguagem de Programação:** C++
-- **Biblioteca Gráfica:** [ABCg](https://github.com/cx-org/abcg)
-- **Renderização 3D:** OpenGL (integrado com ABCg)
-- **Sistema de Controle de Versão:** Git
+- **Iluminação:** As formas renderizadas são iluminadas.
 
 ## Detalhes do código
 
@@ -521,7 +515,7 @@ A lógica de câmera look at é feita pala classe câmera. Que contêm os seguin
 
 Essa implementação de uma câmera "LookAt" utiliza a biblioteca GLM para calcular e manipular as matrizes de projeção e visão de uma câmera 3D. A câmera é configurada com uma posição (`eye`), um ponto de interesse (`at`) e um vetor para cima (`up`). O método `computeProjectionMatrix` calcula a matriz de projeção perspectiva com base no campo de visão (FOV) e a proporção da janela, enquanto o método `computeViewMatrix` cria a matriz de visão com a função `glm::lookAt`, que orienta a câmera para o ponto de interesse.
 
-# Resultados e anélise
+# Resultados e análise
 
 # Conclusões
 
