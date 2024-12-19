@@ -1,7 +1,63 @@
-# Star Shooter
+# (3) Star Shooter -- (19/12/2024)
+
+## Nome dos integrantes
+
+   - Gustavo da Silva Bocato
+   - Pedro de Luca Occulate Serra
+   - Gabriela Sampaio Magiri
+
+## Introdução
 
 **Star Shooter** é um jogo interativo desenvolvido em C++ utilizando a biblioteca ABCg. Neste jogo, cubos e esferas são gerados aleatoriamente na tela, e o jogador deve clicar nas formas corretas para acumular pontos. O cenário de fundo apresenta um efeito de starfield com esferas que se movem em direção à câmera, criando uma experiência imersiva e dinâmica. A proposta desse jogo é ser um jogo de atenção, onde o jogador precisa clicar nas formas corretas. A ideia é exercitar a atenção, uso do mouse e
 coordenação.
+
+# Guia de utilização
+
+## Instalação
+
+### Pré-requisitos
+
+- **C++ Compiler:** Compatível com C++17 ou superior.
+- **CMake:** Versão 3.10 ou superior.
+- **Biblioteca ABCg:** Certifique-se de ter a biblioteca ABCg instalada.
+
+### Passos de Instalação
+
+1. **Clone o Repositório:**
+    Clone o repositorio do projeto dentro da pasta "examples" da abcg
+   ```bash
+   git clone https://github.com/peserra/starshooter
+   cd starshooter
+   ```
+
+2. **Crie o Diretório de Build:**
+   Altere o arquivo CmakeList.txt para compilar o projeto 
+   ```bash
+   mkdir build
+   cd build
+   ```
+
+3. **Compile o Projeto:**
+   No diretorio abcg, execute
+   ```bash
+   ./build.sh
+   ```
+
+4. **Execute o Jogo:**
+   No diretorio abcg, execute
+   ```bash
+    ./build/bin/starshooter/starshooter
+   ```
+
+## Como jogar
+
+- O visor no lado direito inferior indica qual figura é necessário clicar:
+     -  Quadrado verde: Clique nos cubos;
+     -  Círculo verde: Clique nas esferas;
+     -  Quadrado vermelho: Clique nas esferas;
+     -  Círculo vermelho: Clique nos cubos.
+
+# Projeto e desenvolvimento
 
 ## Funcionalidades
 
@@ -465,45 +521,10 @@ A lógica de câmera look at é feita pala classe câmera. Que contêm os seguin
 
 Essa implementação de uma câmera "LookAt" utiliza a biblioteca GLM para calcular e manipular as matrizes de projeção e visão de uma câmera 3D. A câmera é configurada com uma posição (`eye`), um ponto de interesse (`at`) e um vetor para cima (`up`). O método `computeProjectionMatrix` calcula a matriz de projeção perspectiva com base no campo de visão (FOV) e a proporção da janela, enquanto o método `computeViewMatrix` cria a matriz de visão com a função `glm::lookAt`, que orienta a câmera para o ponto de interesse.
 
-## Instalação
+# Resultados e anélise
 
-### Pré-requisitos
+# Conclusões
 
-- **C++ Compiler:** Compatível com C++17 ou superior.
-- **CMake:** Versão 3.10 ou superior.
-- **Biblioteca ABCg:** Certifique-se de ter a biblioteca ABCg instalada.
+# Referências
 
-### Passos de Instalação
-
-1. **Clone o Repositório:**
-    Clone o repositorio do projeto dentro da pasta "examples" da abcg
-   ```bash
-   git clone https://github.com/peserra/starshooter
-   cd starshooter
-   ```
-
-2. **Crie o Diretório de Build:**
-   Altere o arquivo CmakeList.txt para compilar o projeto 
-   ```bash
-   mkdir build
-   cd build
-   ```
-
-3. **Compile o Projeto:**
-   No diretorio abcg, execute
-   ```bash
-   ./build.sh
-   ```
-
-4. **Execute o Jogo:**
-   No diretorio abcg, execute
-   ```bash
-    ./build/bin/starshooter/starshooter
-   ```
-   
-## Instruções de como jogar:
-- O visor no lado direito inferior indica qual figura é necessário clicar:
-     -  Quadrado verde: Clique nos cubos;
-     -  Círculo verde: Clique nas esferas;
-     -  Quadrado vermelho: Clique nas esferas;
-     -  Círculo vermelho: Clique nos cubos.
+   - [notas de aula da disciplina](https://hbatagelo.github.io/cg/)
